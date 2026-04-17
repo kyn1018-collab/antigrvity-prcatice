@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeTrack — Antigravity Vibe Coding Playground</title>
+  <meta name="description" content="대학원생을 위한 Antigravity → GitHub → Netlify 배포 파이프라인 실습 기록 대시보드" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50:  '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            },
+            surface: {
+              800: '#1e1b2e',
+              900: '#13111c',
+              950: '#0c0a14',
+            }
+          },
+          animation: {
+            'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4,0,0.6,1) infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'shimmer': 'shimmer 2s linear infinite',
+          },
+          keyframes: {
+            fadeInUp: {
+              '0%':   { opacity: '0', transform: 'translateY(24px) scale(0.96)' },
+              '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%':      { transform: 'translateY(-10px)' },
+            },
+            shimmer: {
+              '0%':   { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Base ───────────────────────────────── */
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0c0a14;
+      min-height: 100vh;
+    }
+
+    /* Animated gradient background blobs */
+    .bg-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.18;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-blob-1 { width: 600px; height: 600px; background: #6366f1; top: -120px; left: -100px; animation: float 8s ease-in-out infinite; }
+    .bg-blob-2 { width: 500px; height: 500px; background: #a855f7; bottom: -80px; right: -60px; animation: float 10s ease-in-out infinite reverse; }
+    .bg-blob-3 { width: 350px; height: 350px; background: #06b6d4; top: 40%; left: 50%; animation: float 12s ease-in-out infinite 2s; }
+
+    /* Glassmorphism */
+    .glass {
+      background: rgba(30, 27, 46, 0.55);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* Input focus glow */
+    .input-glow:focus {
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.35);
+    }
+
+    /* Card hover lift */
+    .card-hover {
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 50px -12px rgba(99,102,241,0.25);
+    }
+
+    /* Success toast */
+    .toast {
+      animation: fadeInUp 0.4s ease-out forwards, fadeOut 0.4s ease-in 2.2s forwards;
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; transform: translateY(-12px); pointer-events: none; }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 3px; }
+
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #818cf8, #a78bfa, #c084fc, #818cf8);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+
+    /* Number counter badge */
+    .counter-badge {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+    }
+
+    /* Delete button */
+    .btn-delete {
+      transition: all 0.2s ease;
+    }
+    .btn-delete:hover {
+      background: rgba(239,68,68,0.15);
+      color: #f87171;
+    }
+  </style>
+</head>
+
+<body class="text-gray-200 antialiased relative overflow-x-hidden">
+
+  <!-- Background Blobs -->
+  <div class="bg-blob bg-blob-1"></div>
+  <div class="bg-blob bg-blob-2"></div>
+  <div class="bg-blob bg-blob-3"></div>
+
+  <!-- ═══════════════════════ HEADER ═══════════════════════ -->
+  <header class="relative z-10 pt-8 pb-4 px-4">
+    <div class="max-w-5xl mx-auto text-center">
+      <!-- Logo Icon -->
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-purple-500 shadow-lg shadow-brand-500/25 mb-5 animate-float">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 0 1-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 0 0 6.16-12.12A14.98 14.98 0 0 0 9.631 8.41m5.96 5.96a14.926 14.926 0 0 1-5.841 2.58m-.119-8.54a6 6 0 0 0-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 0 0-2.58 5.841m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 0 1-2.448-2.448 14.9 14.9 0 0 1 .06-.312m-2.24 2.39a4.493 4.493 0 0 0-1.757 4.306 4.493 4.493 0 0 0 4.306-1.758M16.5 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+        </svg>
+      </div>
+
+      <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight gradient-text mb-3">
+        Antigravity Vibe Coding Playground
+      </h1>
+      <p class="text-sm md:text-base text-gray-400 max-w-xl mx-auto leading-relaxed">
+        Antigravity → GitHub → Netlify 배포 파이프라인 실습 기록 대시보드
+      </p>
+
+      <!-- Pipeline Visual -->
+      <div class="flex items-center justify-center gap-2 md:gap-3 mt-6 text-xs md:text-sm font-medium">
+        <span class="px-3 py-1.5 rounded-full glass text-brand-300">⚡ Antigravity</span>
+        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        <span class="px-3 py-1.5 rounded-full glass text-gray-300">🐙 GitHub</span>
+        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        <span class="px-3 py-1.5 rounded-full glass text-emerald-300">🌐 Netlify</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════ MAIN ═══════════════════════ -->
+  <main class="relative z-10 px-4 pb-20">
+    <div class="max-w-5xl mx-auto">
+
+      <!-- ── Form Section ── -->
+      <section id="form-section" class="mt-8 md:mt-12">
+        <div class="glass rounded-3xl p-6 md:p-8 shadow-2xl shadow-black/20">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center">
+              <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg md:text-xl font-bold text-white">새 프로젝트 등록</h2>
+              <p class="text-xs text-gray-400">배포 정보를 입력하고 기록을 남기세요</p>
+            </div>
+          </div>
+
+          <form id="deploy-form" class="space-y-5" novalidate>
+            <!-- Project Name -->
+            <div>
+              <label for="project-name" class="block text-sm font-medium text-gray-300 mb-1.5">
+                프로젝트 이름 <span class="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="project-name"
+                placeholder="예: My Awesome Portfolio"
+                required
+                class="input-glow w-full px-4 py-3 rounded-xl bg-surface-900/80 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none transition-all duration-200 text-sm md:text-base"
+              />
+            </div>
+
+            <!-- GitHub & Netlify links — side by side on md+ -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <!-- GitHub -->
+              <div>
+                <label for="github-link" class="block text-sm font-medium text-gray-300 mb-1.5">
+                  GitHub 저장소 링크 <span class="text-red-400">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.6.11.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+                  </span>
+                  <input
+                    type="url"
+                    id="github-link"
+                    placeholder="https://github.com/user/repo"
+                    required
+                    class="input-glow w-full pl-10 pr-4 py-3 rounded-xl bg-surface-900/80 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none transition-all duration-200 text-sm md:text-base"
+                  />
+                </div>
+              </div>
+
+              <!-- Netlify -->
+              <div>
+                <label for="netlify-link" class="block text-sm font-medium text-gray-300 mb-1.5">
+                  Netlify 배포 링크 <span class="text-red-400">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.3877 11.4252L17.3152 11.3778L14.4498 8.51234L14.6547 6.62085L14.6227 6.5645L12.1727 4.11453L12.0298 4.07812L9.12632 6.15227L9.10547 6.22504L9.7166 8.84753L7.11493 10.6228L7.04688 10.6745L7.04493 10.7447L7.00659 13.5028L7.01909 13.5689L9.18215 15.7319L9.19854 15.736H9.27243L11.2556 15.2428L13.3023 17.2895L13.3573 17.3131L16.6497 16.4988L16.7228 16.4456L17.3955 11.5007L17.3877 11.4252ZM13.9652 16.4199L12.0906 14.5453L13.8819 11.3024L16.4494 11.7403L15.9095 15.8131L13.9652 16.4199ZM9.89998 14.7875L8.04688 12.9344V11.1789L11.4298 12.2964L9.89998 14.7875ZM10.3905 6.93254L12.0602 5.32671L13.697 6.96348L13.5002 8.51234L10.7272 8.71722L10.3905 6.93254ZM11.1548 9.56504L13.6373 9.38351L13.972 11.1098L11.4975 11.5289L9.84887 9.06671L11.1548 9.56504ZM14.8284 10.9866L14.4506 9.0498L16.3997 10.9989L14.8284 10.9866Z"/></svg>
+                  </span>
+                  <input
+                    type="url"
+                    id="netlify-link"
+                    placeholder="https://my-site.netlify.app"
+                    required
+                    class="input-glow w-full pl-10 pr-4 py-3 rounded-xl bg-surface-900/80 border border-white/10 text-white placeholder-gray-500 focus:border-brand-500 focus:outline-none transition-all duration-200 text-sm md:text-base"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="pt-1">
+              <button
+                type="submit"
+                id="submit-btn"
+                class="w-full md:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 text-white font-semibold text-sm md:text-base shadow-lg shadow-brand-600/25 hover:shadow-brand-500/40 hover:from-brand-500 hover:to-purple-500 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
+                프로젝트 등록하기
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ── Projects Header ── -->
+      <section class="mt-12 md:mt-16">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl md:text-2xl font-bold text-white">배포 기록</h2>
+            <span id="project-count" class="counter-badge text-xs font-bold text-white px-2.5 py-0.5 rounded-full shadow-md">0</span>
+          </div>
+          <button
+            id="clear-all-btn"
+            class="hidden text-xs text-gray-400 hover:text-red-400 transition-colors duration-200 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-500/10"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>
+            전체 삭제
+          </button>
+        </div>
+
+        <!-- Cards Grid -->
+        <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Dynamic cards injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="flex flex-col items-center justify-center py-16 text-center">
+          <div class="w-20 h-20 rounded-full bg-surface-800 flex items-center justify-center mb-5 animate-pulse-slow">
+            <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"/>
+            </svg>
+          </div>
+          <p class="text-gray-500 font-medium mb-1">아직 등록된 프로젝트가 없습니다</p>
+          <p class="text-gray-600 text-sm">위 폼에서 첫 번째 프로젝트를 등록해 보세요! 🚀</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <footer class="relative z-10 border-t border-white/5 py-6 text-center text-xs text-gray-500">
+    <p>© 2026 <span class="gradient-text font-semibold">VibeTrack</span> — Antigravity Vibe Coding Playground</p>
+  </footer>
+
+  <!-- ═══════════════════════ TOAST CONTAINER ═══════════════════════ -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+  <!-- ═══════════════════════ JAVASCRIPT ═══════════════════════ -->
+  <script>
+    (() => {
+      'use strict';
+
+      // ── DOM References ──
+      const form            = document.getElementById('deploy-form');
+      const nameInput       = document.getElementById('project-name');
+      const githubInput     = document.getElementById('github-link');
+      const netlifyInput    = document.getElementById('netlify-link');
+      const cardsContainer  = document.getElementById('cards-container');
+      const emptyState      = document.getElementById('empty-state');
+      const projectCount    = document.getElementById('project-count');
+      const clearAllBtn     = document.getElementById('clear-all-btn');
+      const toastContainer  = document.getElementById('toast-container');
+
+      // ── State ──
+      const STORAGE_KEY = 'vibetrack_projects';
+      let projects = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+      // ── Helpers ──
+      const saveProjects = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+
+      const generateId = () => `proj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+      const formatDate = (iso) => {
+        const d = new Date(iso);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
+      };
+
+      const getInitials = (name) => {
+        const words = name.trim().split(/\s+/);
+        if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+        return name.slice(0, 2).toUpperCase();
+      };
+
+      // Assign a deterministic gradient based on name
+      const gradients = [
+        'from-indigo-500 to-purple-600',
+        'from-cyan-500 to-blue-600',
+        'from-emerald-500 to-teal-600',
+        'from-rose-500 to-pink-600',
+        'from-amber-500 to-orange-600',
+        'from-violet-500 to-fuchsia-600',
+        'from-lime-500 to-green-600',
+        'from-sky-500 to-indigo-600',
+      ];
+      const pickGradient = (name) => {
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+        return gradients[Math.abs(hash) % gradients.length];
+      };
+
+      // ── Toast Notification ──
+      const showToast = (message, type = 'success') => {
+        const colors = {
+          success: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-300',
+          error:   'from-red-500/20 to-red-600/10 border-red-500/30 text-red-300',
+          info:    'from-brand-500/20 to-brand-600/10 border-brand-500/30 text-brand-300',
+        };
+        const icons = {
+          success: '✓',
+          error:   '✕',
+          info:    'ℹ',
+        };
+        const el = document.createElement('div');
+        el.className = `toast pointer-events-auto flex items-center gap-2.5 px-5 py-3 rounded-xl bg-gradient-to-r ${colors[type]} border backdrop-blur-md text-sm font-medium shadow-xl`;
+        el.innerHTML = `<span class="text-base">${icons[type]}</span> ${message}`;
+        toastContainer.appendChild(el);
+        setTimeout(() => el.remove(), 2800);
+      };
+
+      // ── Render ──
+      const updateUI = () => {
+        projectCount.textContent = projects.length;
+        emptyState.classList.toggle('hidden', projects.length > 0);
+        clearAllBtn.classList.toggle('hidden', projects.length === 0);
+        clearAllBtn.classList.toggle('flex', projects.length > 0);
+      };
+
+      const createCard = (project, animate = false) => {
+        const card = document.createElement('div');
+        card.id = project.id;
+        card.className = `card-hover glass rounded-2xl p-5 flex flex-col relative group ${animate ? 'animate-fade-in-up' : ''}`;
+
+        const grad = pickGradient(project.name);
+        card.innerHTML = `
+          <!-- Delete Button -->
+          <button data-delete="${project.id}" class="btn-delete absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" title="삭제">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+          </button>
+
+          <!-- Top: Avatar + Title -->
+          <div class="flex items-start gap-3.5 mb-4">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-md">
+              ${getInitials(project.name)}
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-white font-semibold text-base truncate pr-6" title="${project.name}">
+                ${project.name}
+              </h3>
+              <p class="text-gray-400 text-xs mt-0.5">${formatDate(project.date)}</p>
+            </div>
+          </div>
+
+          <!-- Links Buttons -->
+          <div class="mt-auto flex gap-2.5">
+            <a href="${project.github}" target="_blank" rel="noopener noreferrer"
+               class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-xs font-medium hover:bg-white/10 hover:text-white hover:border-white/20 transition-all duration-200">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.6.11.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+              GitHub
+            </a>
+            <a href="${project.netlify}" target="_blank" rel="noopener noreferrer"
+               class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-400/30 transition-all duration-200">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.3877 11.4252L17.3152 11.3778L14.4498 8.51234L14.6547 6.62085L14.6227 6.5645L12.1727 4.11453L12.0298 4.07812L9.12632 6.15227L9.10547 6.22504L9.7166 8.84753L7.11493 10.6228L7.04688 10.6745L7.04493 10.7447L7.00659 13.5028L7.01909 13.5689L9.18215 15.7319L9.19854 15.736H9.27243L11.2556 15.2428L13.3023 17.2895L13.3573 17.3131L16.6497 16.4988L16.7228 16.4456L17.3955 11.5007L17.3877 11.4252ZM13.9652 16.4199L12.0906 14.5453L13.8819 11.3024L16.4494 11.7403L15.9095 15.8131L13.9652 16.4199ZM9.89998 14.7875L8.04688 12.9344V11.1789L11.4298 12.2964L9.89998 14.7875ZM10.3905 6.93254L12.0602 5.32671L13.697 6.96348L13.5002 8.51234L10.7272 8.71722L10.3905 6.93254ZM11.1548 9.56504L13.6373 9.38351L13.972 11.1098L11.4975 11.5289L9.84887 9.06671L11.1548 9.56504ZM14.8284 10.9866L14.4506 9.0498L16.3997 10.9989L14.8284 10.9866Z"/></svg>
+              Netlify
+            </a>
+          </div>
+        `;
+        return card;
+      };
+
+      const renderAllCards = () => {
+        cardsContainer.innerHTML = '';
+        projects.forEach((p) => cardsContainer.appendChild(createCard(p, false)));
+        updateUI();
+      };
+
+      // ── Validation ──
+      const validateUrl = (url) => {
+        try { new URL(url); return true; }
+        catch { return false; }
+      };
+
+      const highlightError = (input) => {
+        input.classList.add('border-red-500/60');
+        input.addEventListener('input', () => input.classList.remove('border-red-500/60'), { once: true });
+      };
+
+      // ── Form Submit ──
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const name    = nameInput.value.trim();
+        const github  = githubInput.value.trim();
+        const netlify = netlifyInput.value.trim();
+
+        // Validate
+        let hasError = false;
+        if (!name)                { highlightError(nameInput);    hasError = true; }
+        if (!validateUrl(github)) { highlightError(githubInput);  hasError = true; }
+        if (!validateUrl(netlify)){ highlightError(netlifyInput); hasError = true; }
+        if (hasError) {
+          showToast('모든 필드를 올바르게 입력해 주세요', 'error');
+          return;
+        }
+
+        // Create project
+        const project = {
+          id:      generateId(),
+          name,
+          github,
+          netlify,
+          date:    new Date().toISOString(),
+        };
+        projects.unshift(project);
+        saveProjects();
+
+        // Prepend card with animation
+        const card = createCard(project, true);
+        cardsContainer.prepend(card);
+        updateUI();
+
+        // Reset form
+        form.reset();
+        nameInput.focus();
+        showToast(`"${name}" 프로젝트가 등록되었습니다!`, 'success');
+      });
+
+      // ── Delete Single Card ──
+      cardsContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-delete]');
+        if (!btn) return;
+        const id = btn.dataset.delete;
+        const card = document.getElementById(id);
+        if (!card) return;
+
+        card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+        card.style.transform  = 'scale(0.9)';
+        card.style.opacity    = '0';
+        setTimeout(() => {
+          projects = projects.filter(p => p.id !== id);
+          saveProjects();
+          card.remove();
+          updateUI();
+          showToast('프로젝트가 삭제되었습니다', 'info');
+        }, 300);
+      });
+
+      // ── Clear All ──
+      clearAllBtn.addEventListener('click', () => {
+        if (!confirm('모든 배포 기록을 삭제하시겠습니까?')) return;
+        projects = [];
+        saveProjects();
+        cardsContainer.innerHTML = '';
+        updateUI();
+        showToast('모든 기록이 삭제되었습니다', 'info');
+      });
+
+      // ── Initial Render ──
+      renderAllCards();
+    })();
+  </script>
+</body>
+</html>
